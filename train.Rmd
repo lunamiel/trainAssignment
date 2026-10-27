@@ -1,0 +1,107 @@
+---
+title: "train"
+author: "Dr. Wayne Stewart"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+So far in the course we have shown you how to **USE** the dpq and r functions. In this problem you will need to create them for a particular random variable associated with a train being late to a station.
+
+![](train5-5.png)
+
+# Tasks
+
+## Task 1
+
+Using the above density find "c". You should use $\int_{-\infty}^{\infty}f(t)dt = 1$
+
+## Task 2
+
+-   In R create the density function `dtrain(x).`Hint: Use `ifelse()`, please note that the function must return a value for any $x\in \Re$
+
+```
+dtrain <- function(x){
+  ifelse( x > -5 & x < 5,...) # complete!!
+}
+```
+
+
+-   Plot the density over (-10,10)
+
+-   Evaluate `dtrain(x = 0)`
+
+## Task 3
+
+-   In R create the cumulative distribution function `ptrain(q)`, please note that the function must return a value for any $q\in \Re$
+
+
+```
+ptrain <- function(q){
+  ifelse(q <= -5,
+         0,
+         ... # complete!!
+}
+```
+
+
+-   Plot the cumulative distribution function over (-10,10)
+
+-   Evaluate `ptrain(q = 0)`
+
+## Task 4
+
+-   In R create the quantile function `qtrain(p)`, you will need to use the w-F Theorem where you set w to a vector of values (these are the components of p).
+
+You can do this in a number of ways:
+
+1.  Use $w = F(y),\; w - F(y) = 0, \;k(y) = w - F(y)$ we want the roots of $k(y)$. You can use `stats::uniroot()`
+
+2.  Use $w = F(y),\; w - F(y) = 0, \; h(y) = | w-F(y) |$ and find $y_{min}$ such that $h(y_{min})$ is a minimum.
+
+There will be a minimum for each w component. This minimum can be found with `optimize()`
+
+
+```
+
+qtrain <- function(p){
+ ifelse(p < 0 | p > 1,stop("p must be between 0 and 1"), "")
+  
+  myroot <- function(p) {
+     k <- function(x){
+     p -  1/500*(75*x - x^3 + 250)
+  }
+    l <- stats::uniroot(... ) # complete
+    l$root
+  }
+  
+  purrr::map_vec(.x = p, .f = myroot) # You must read the doc for this
+}
+```
+
+
+-   Evaluate `qtrain(p = 0.75)`
+
+-   Evaluate `qtrain(p = c(0.25,0.5,0.75))`
+
+## Task 5
+
+-   In R create the random sample function `rtrain(n)`, you will need to use the w-F Theorem where you set w to a vector of values from the `uniform(0,1)` distribution.
+
+
+```
+rtrain <- function(n){
+  r <- runif(...) # complete!!
+  qtrain(...)
+
+```
+
+
+-   Make a random sample of size $n=10000$ and use it to make a relative frequency histogram with the train density overlain.
