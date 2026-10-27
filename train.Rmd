@@ -1,14 +1,15 @@
 ---
 title: "train"
-author: "Dr. Wayne Stewart"
+author: "lunamiel"
 date: "`r Sys.Date()`"
-output: 
+output:
   html_document:
     toc: yes
+    toc_float: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 ```
 
 # Introduction
@@ -17,91 +18,185 @@ So far in the course we have shown you how to **USE** the dpq and r functions. I
 
 ![](train5-5.png)
 
+I named my versions `dmytrain`, `pmytrain`, `qmytrain` and `rmytrain` so they don't clash with the improved `dtrain`, `ptrain`, `qtrain` and `rtrain` I write at the end.
+
 # Tasks
 
 ## Task 1
 
-Using the above density find "c". You should use $\int_{-\infty}^{\infty}f(t)dt = 1$
+- Using the above density find "c". You should use $\int_{-\infty}^{\infty}f(t)dt = 1$
+
+The density is 0 outside $(-5, 5)$, so only that piece of the integral counts:
+
+$$
+\begin{aligned}
+1 &= \int_{-\infty}^{\infty} f(y)\,dy = \int_{-5}^{5} \frac{c}{500}\left(25 - y^2\right)dy \\
+  &= \frac{c}{500}\left[25y - \frac{y^3}{3}\right]_{-5}^{5} \\
+  &= \frac{c}{500}\left[\left(125 - \frac{125}{3}\right) - \left(-125 + \frac{125}{3}\right)\right] \\
+  &= \frac{c}{500}\left(250 - \frac{250}{3}\right) = \frac{c}{500}\cdot\frac{500}{3} = \frac{c}{3}
+\end{aligned}
+$$
+
+So $\frac{c}{3} = 1$, which gives $c = 3$ and
+
+$$
+f(y) = \frac{3}{500}\left(25 - y^2\right), \quad -5 < y < 5.
+$$
+
+Quick numerical check in R that it really integrates to 1:
+
+```{r}
+# integrate the density with c = 3 over its support, should be 1
+integrate(function(y) 3/500 * (25 - y^2), lower = -5, upper = 5)
+```
 
 ## Task 2
 
--   In R create the density function `dtrain(x).`Hint: Use `ifelse()`, please note that the function must return a value for any $x\in \Re$
+- In R create the density function `dmytrain(x)`, it must return a value for any $x \in \Re$
 
-```
-dtrain <- function(x){
-  ifelse( x > -5 & x < 5,...) # complete!!
+```{r}
+# density of the train lateness: 3/500*(25 - x^2) on [-5, 5] and 0 everywhere else
+dmytrain <- function(x){
+  ifelse(x >= -5 & x <= 5, 3/500*(25 - x^2), 0)
 }
 ```
 
+- Plot the density over (-10,10)
 
--   Plot the density over (-10,10)
+```{r}
+# curve() evaluates dmytrain on a grid of x values between -10 and 10
+curve(dmytrain(x), from = -10, to = 10, n = 1000,
+      lwd = 2, col = "darkgreen",
+      xlab = "y (minutes late)", ylab = "f(y)",
+      main = "Density of train lateness")
+abline(h = 0, col = "grey")
+```
 
--   Evaluate `dtrain(x = 0)`
+- Evaluate `dmytrain(x = 0)`
+
+```{r}
+# should be 3/500*25 = 0.15, the peak of the density
+dmytrain(x = 0)
+```
 
 ## Task 3
 
--   In R create the cumulative distribution function `ptrain(q)`, please note that the function must return a value for any $q\in \Re$
+- In R create the cumulative distribution function `pmytrain(q)`, it must return a value for any $q \in \Re$
 
+Integrating the density from $-5$ up to $q$ gives
 
-```
-ptrain <- function(q){
+$$
+F(q) = \int_{-5}^{q} \frac{3}{500}\left(25 - t^2\right)dt = \frac{75q - q^3 + 250}{500}, \quad -5 < q < 5
+$$
+
+```{r}
+# cdf: 0 to the left of the support, 1 to the right, the cubic in between
+pmytrain <- function(q){
   ifelse(q <= -5,
          0,
-         ... # complete!!
+         ifelse(q >= 5,
+                1,
+                (75*q - q^3 + 250)/500))
 }
 ```
 
+- Plot the cumulative distribution function over (-10,10)
 
--   Plot the cumulative distribution function over (-10,10)
+```{r}
+# the cdf should climb from 0 to 1 between -5 and 5
+curve(pmytrain(x), from = -10, to = 10, n = 1000,
+      lwd = 2, col = "darkgreen",
+      xlab = "q (minutes late)", ylab = "F(q)",
+      main = "CDF of train lateness")
+abline(h = c(0, 1), col = "grey", lty = 2)
+```
 
--   Evaluate `ptrain(q = 0)`
+- Evaluate `pmytrain(q = 0)`
+
+```{r}
+# the density is symmetric about 0 so this should be 0.5
+pmytrain(q = 0)
+```
 
 ## Task 4
 
--   In R create the quantile function `qtrain(p)`, you will need to use the w-F Theorem where you set w to a vector of values (these are the components of p).
+- In R create the quantile function `qmytrain(p)` using the w-F Theorem
 
-You can do this in a number of ways:
+I'm using method 1: set $k(y) = F(y) - p$ and find the root of $k$ on $(-5, 5)$ with `uniroot()`, once for each component of `p`.
 
-1.  Use $w = F(y),\; w - F(y) = 0, \;k(y) = w - F(y)$ we want the roots of $k(y)$. You can use `stats::uniroot()`
+```{r}
+qmytrain <- function(p){
+  # probabilities have to be in [0, 1]
+  if (any(p < 0 | p > 1)) stop("p must be between 0 and 1")
 
-2.  Use $w = F(y),\; w - F(y) = 0, \; h(y) = | w-F(y) |$ and find $y_{min}$ such that $h(y_{min})$ is a minimum.
-
-There will be a minimum for each w component. This minimum can be found with `optimize()`
-
-
-```
-
-qtrain <- function(p){
- ifelse(p < 0 | p > 1,stop("p must be between 0 and 1"), "")
-  
-  myroot <- function(p) {
-     k <- function(x){
-     p -  1/500*(75*x - x^3 + 250)
+  # for one value of p, solve pmytrain(x) - p = 0 for x
+  myroot <- function(p){
+    k <- function(x){
+      pmytrain(x) - p
+    }
+    stats::uniroot(k, interval = c(-5, 5), tol = 1e-8)$root
   }
-    l <- stats::uniroot(... ) # complete
-    l$root
-  }
-  
-  purrr::map_vec(.x = p, .f = myroot) # You must read the doc for this
+
+  # map_vec runs myroot on each element of p and returns a vector
+  purrr::map_vec(.x = p, .f = myroot)
 }
 ```
 
+- Evaluate `qmytrain(p = 0.75)`
 
--   Evaluate `qtrain(p = 0.75)`
+```{r}
+# 75% of the time the train is less than this many minutes late
+qmytrain(p = 0.75)
+```
 
--   Evaluate `qtrain(p = c(0.25,0.5,0.75))`
+- Evaluate `qmytrain(p = c(0.25,0.5,0.75))`
+
+```{r}
+# quartiles, they should be symmetric around 0 with the median at 0
+qmytrain(p = c(0.25, 0.5, 0.75))
+```
+
+As a check, putting the quantiles back into the cdf should give the probabilities again:
+
+```{r}
+pmytrain(qmytrain(c(0.25, 0.5, 0.75)))
+```
 
 ## Task 5
 
--   In R create the random sample function `rtrain(n)`, you will need to use the w-F Theorem where you set w to a vector of values from the `uniform(0,1)` distribution.
+- In R create the random sample function `rmytrain(n)` using the w-F Theorem with w from `uniform(0,1)`
 
-
+```{r}
+# make n uniform(0,1) values and push them through the quantile function
+rmytrain <- function(n){
+  r <- runif(n, 0, 1)
+  qmytrain(r)
+}
 ```
-rtrain <- function(n){
-  r <- runif(...) # complete!!
-  qtrain(...)
 
+- Make a random sample of size $n=10000$ and use it to make a relative frequency histogram with the train density overlain.
+
+```{r}
+set.seed(4753) # so the sample is the same every time I knit
+
+samp <- rmytrain(10000)
+
+# freq = FALSE puts density on the y axis so it lines up with dmytrain
+hist(samp, freq = FALSE, breaks = 40,
+     col = "lightgreen", border = "white",
+     xlim = c(-6, 6),
+     xlab = "y (minutes late)",
+     main = "10000 simulated train delays")
+curve(dmytrain(x), from = -6, to = 6, n = 1000,
+      add = TRUE, lwd = 2, col = "darkgreen")
+legend("topright", legend = c("sample", "density"),
+       fill = c("lightgreen", NA), border = c("white", NA),
+       lty = c(NA, 1), lwd = c(NA, 2), col = c(NA, "darkgreen"), bty = "n")
 ```
 
+The histogram follows the curve really closely, so `rmytrain` is producing values from the right distribution. The sample mean and variance should also be close to the true values $E(Y) = 0$ and $V(Y) = 5$:
 
--   Make a random sample of size $n=10000$ and use it to make a relative frequency histogram with the train density overlain.
+```{r}
+mean(samp)
+var(samp)
+```
