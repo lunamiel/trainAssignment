@@ -42,6 +42,9 @@ test_that("bad input gives clear errors", {
 })
 
 test_that("results have the train class, summaries and plots", {
+  # draw to a null device so printing the plots doesn't leave an Rplots.pdf behind
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off())
   for (o in list(dtrain(1), ptrain(1), qtrain(c(0.025, 0.975)), rtrain(50))) {
     expect_s3_class(o, "train")
     expect_equal(o$variance, 5)

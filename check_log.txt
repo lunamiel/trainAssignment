@@ -24,7 +24,7 @@ Setting env vars:
 • _R_CHECK_PACKAGES_USED_IGNORE_UNUSED_IMPORTS_: FALSE
 • NOT_CRAN                                     : true
 ── R CMD check ─────────────────────────────────────────────────────────────────
-* using log directory 'C:/Users/irene/AppData/Local/Temp/RtmpQPObAK/file1710c683b40/MATH4753LuciaF26.Rcheck'
+* using log directory 'C:/Users/irene/AppData/Local/Temp/Rtmpc7NULK/file22483b1f1cc2/MATH4753LuciaF26.Rcheck'
 * using R version 4.6.1 (2026-06-24 ucrt)
 * using platform: x86_64-w64-mingw32
 * R was compiled by
@@ -32,7 +32,7 @@ Setting env vars:
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-10-27 19:29:14 UTC
+* current time: 2026-10-27 19:30:57 UTC
 * using options '--no-manual --as-cran'
 * checking for file 'MATH4753LuciaF26/DESCRIPTION' ... OK
 * this is package 'MATH4753LuciaF26' version '0.1.0'
@@ -93,6 +93,6 @@ Setting env vars:
 
 Status: OK
 ── R CMD check results ───────────────────────────── MATH4753LuciaF26 0.1.0 ────
-Duration: 34s
+Duration: 32.5s
 
 0 errors ✔ | 0 warnings ✔ | 0 notes ✔
