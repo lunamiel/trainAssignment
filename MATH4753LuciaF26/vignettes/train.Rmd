@@ -1,0 +1,226 @@
+---
+title: "The train lateness distribution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The train lateness distribution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center"
+)
+```
+
+```{r load-package}
+library(MATH4753LuciaF26)
+```
+
+## Introduction
+
+In MATH 4753 we spent a lot of time *using* the d, p, q and r functions that come with R. For the train assignment I had to build them myself for a new random variable, and this package holds the improved versions.
+
+Let $Y$ be the number of minutes a commuter train is late. The sign tells you which way:
+
+- $Y < 0$: the train is early (for example $y = -2$ is two minutes early).
+- $Y = 0$: the train is right on time.
+- $Y > 0$: the train is late (for example $y = 3$ is three minutes late).
+
+In this model the train is never more than five minutes off in either direction, so the support of $Y$ is $(-5, 5)$.
+
+The package has the usual four distribution functions:
+
+- `dtrain(x, plot = TRUE)`: the density $f(y)$.
+- `ptrain(q, lower.tail = TRUE, plot = TRUE)`: the cdf $F(q)$, or the upper tail.
+- `qtrain(p, lower.tail = TRUE, plot = TRUE)`: the exact quantile $F^{-1}(p)$.
+- `rtrain(n, plot = TRUE)`: random samples using the w-F theorem.
+
+Each one returns an object of class `"train"`. It is a list with the answer in `$value`, the input in `$input`, the true `$mean`, `$variance`, `$sd`, `$median` and `$mode`, and a ggplot in `$plot`. Printing it shows a summary and draws the plot. If you just want the numbers, use `$value`, and set `plot = FALSE` to skip making the plot.
+
+## Theory
+
+### Finding c
+
+The density in the problem is
+
+$$
+f(y) = \begin{cases} \frac{c}{500}\left(25 - y^2\right), & -5 < y < 5 \\ 0, & \text{elsewhere} \end{cases}
+$$
+
+For $f$ to be a density it has to integrate to 1. The integrand is even, so I can integrate from 0 to 5 and double it:
+
+$$
+1 = \int_{-5}^{5} \frac{c}{500}\left(25 - y^2\right)dy = \frac{2c}{500}\left[25y - \frac{y^3}{3}\right]_{0}^{5} = \frac{2c}{500}\left(125 - \frac{125}{3}\right) = \frac{2c}{500}\cdot\frac{250}{3} = \frac{c}{3}
+$$
+
+So $c = 3$ and
+
+$$
+f(y) = \frac{3}{500}\left(25 - y^2\right), \quad -5 < y < 5 .
+$$
+
+### The cdf
+
+For $-5 < q < 5$, integrate the density from the left end of the support up to $q$:
+
+$$
+F(q) = \int_{-5}^{q} \frac{3}{500}\left(25 - y^2\right)dy = \frac{3}{500}\left[25y - \frac{y^3}{3}\right]_{-5}^{q} = \frac{3}{500}\left(25q - \frac{q^3}{3} + \frac{250}{3}\right) = \frac{75q - q^3 + 250}{500}
+$$
+
+Over the whole real line:
+
+$$
+F(q) = \begin{cases} 0, & q \le -5 \\ \frac{75q - q^3 + 250}{500}, & -5 < q < 5 \\ 1, & q \ge 5 \end{cases}
+$$
+
+### Mean and variance
+
+The density is symmetric about 0, so $y f(y)$ is an odd function and
+
+$$
+E(Y) = \int_{-5}^{5} y \cdot \frac{3}{500}\left(25 - y^2\right)dy = 0 .
+$$
+
+The median and mode are also 0. For the variance I need the second moment:
+
+$$
+E(Y^2) = \frac{6}{500}\int_{0}^{5}\left(25y^2 - y^4\right)dy = \frac{6}{500}\left[\frac{25y^3}{3} - \frac{y^5}{5}\right]_{0}^{5} = \frac{6}{500}\left(\frac{3125}{3} - 625\right) = \frac{6}{500}\cdot\frac{1250}{3} = 5
+$$
+
+so $V(Y) = E(Y^2) - [E(Y)]^2 = 5$ and $SD(Y) = \sqrt{5} \approx 2.236$ minutes.
+
+### The exact quantile
+
+To find the quantile for a probability $p$, solve $F(q) = p$:
+
+$$
+\frac{75q - q^3 + 250}{500} = p \quad\Longrightarrow\quad q^3 - 75q + (500p - 250) = 0 .
+$$
+
+This is a depressed cubic, and since it always has three real roots, the trig (Viète) method works. Substitute $q = 10\cos\theta$:
+
+$$
+1000\cos^3\theta - 750\cos\theta = 250 - 500p \quad\Longrightarrow\quad 4\cos^3\theta - 3\cos\theta = 1 - 2p .
+$$
+
+The left side is $\cos(3\theta)$ by the triple angle identity, so $\cos(3\theta) = 1 - 2p$. That has three solutions for $\theta$, and the one that keeps $q$ inside $[-5, 5]$ is
+
+$$
+q = 10\cos\left(\frac{\arccos(1 - 2p) - 2\pi}{3}\right).
+$$
+
+Checking the ends: $p = 0$ gives $-5$, $p = \frac{1}{2}$ gives $0$ and $p = 1$ gives $5$. In the assignment I found the quantile with `uniroot()` for every $p$, which is slow. This formula is exact and works on a whole vector at once.
+
+### Random samples with the w-F theorem
+
+The w-F theorem (the probability integral transform) says that if $U \sim \text{Uniform}(0, 1)$ and $F$ is a continuous, increasing cdf, then $X = F^{-1}(U)$ has cdf $F$. The proof is one line:
+
+$$
+P(X \le x) = P\left(F^{-1}(U) \le x\right) = P\left(U \le F(x)\right) = F(x).
+$$
+
+So `rtrain(n)` makes $n$ uniform values with `runif()` and runs them through the exact quantile formula.
+
+## Workflow
+
+### dtrain
+
+`dtrain()` gives $f(x)$ for any numeric vector, including values outside the support. The plot marks each point on the density curve.
+
+```{r dtrain-eval}
+dtrain(c(-6, 0, 2.5))
+```
+
+At $x = -6$ the density is 0, because the train is never more than 5 minutes early. The highest density is at $x = 0$, where $f(0) = \frac{3}{500}\cdot 25 = 0.15$, so delays close to on time are the most likely. At 2.5 minutes late the density has dropped to `r dtrain(2.5, plot = FALSE)$value`.
+
+### ptrain
+
+`ptrain()` gives $P(Y \le q)$ by default, or $P(Y > q)$ with `lower.tail = FALSE`. The plot shades that area under the density, and the printout shows both tails.
+
+```{r ptrain-lower}
+ptrain(2)
+```
+
+```{r ptrain-upper}
+ptrain(2, lower.tail = FALSE)$value
+```
+
+So there is a `r 100 * ptrain(2, plot = FALSE)$value`% chance the train is at most 2 minutes late, which covers everything from 5 minutes early up to 2 minutes late. That leaves a `r 100 * ptrain(2, lower.tail = FALSE, plot = FALSE)$value`% chance it is more than 2 minutes late.
+
+### qtrain
+
+`qtrain()` goes the other way: given probabilities, it returns the delays that cut them off. With two or more probabilities, the plot shades both outer tails, which makes it easy to see critical values.
+
+```{r qtrain-eval}
+q95 <- qtrain(c(0.025, 0.975))
+q95
+```
+
+The 2.5% and 97.5% quantiles are about $\pm$ `r round(q95$value[2], 3)` minutes. So 95% of the time the train arrives within `r round(q95$value[2], 3)` minutes of schedule. Only 2.5% of trains are more than that early, and only 2.5% are more than that late.
+
+### rtrain
+
+`rtrain()` simulates delays. `n` has to be a single whole number that is at least 1.
+
+```{r rtrain-eval}
+set.seed(4753)
+r <- rtrain(10000)
+r
+```
+
+With 10000 simulated trains, the sample mean is `r round(r$sample_mean, 3)` (true value 0) and the sample variance is `r round(r$sample_variance, 3)` (true value 5). The histogram follows the density curve closely, which is a good sign that the w-F method and the quantile formula are working.
+
+## Putting it together
+
+### How likely is a 1 to 3 minute delay?
+
+Say I have a connecting bus and want to know the chance the train is between 1 and 3 minutes late. That is $P(1 \le Y \le 3) = F(3) - F(1)$:
+
+```{r worked-between}
+p13 <- ptrain(c(1, 3), plot = FALSE)$value
+p13
+diff(p13)
+```
+
+By hand:
+
+$$
+F(3) = \frac{225 - 27 + 250}{500} = \frac{448}{500} = 0.896, \qquad F(1) = \frac{75 - 1 + 250}{500} = \frac{324}{500} = 0.648
+$$
+
+so $P(1 \le Y \le 3) = 0.896 - 0.648 = 0.248$. There is about a 25% chance of a delay between 1 and 3 minutes.
+
+### A 90% window for arrival times
+
+Which interval of delays holds the middle 90% of trips? That is the 5th and 95th percentiles:
+
+```{r worked-interval}
+q90 <- qtrain(c(0.05, 0.95))
+q90$value
+```
+
+The middle 90% of trains arrive between `r round(q90$value[1], 3)` and `r round(q90$value[2], 3)` minutes, so 9 out of 10 trains are within about `r round(q90$value[2], 2)` minutes of schedule.
+
+## Input validation
+
+All four functions check their arguments before computing anything. `qtrain()` needs probabilities in $[0, 1]$ and `rtrain()` needs one whole number for the sample size:
+
+```{r validation-errors, error = TRUE}
+qtrain(1.5)
+rtrain(2.5)
+```
+
+Instead of returning `NaN` or a confusing error from deep inside `uniroot()`, they stop with a message that says what went wrong.
+
+## Summary
+
+- The model is $f(y) = \frac{3}{500}\left(25 - y^2\right)$ on $(-5, 5)$, with $E(Y) = 0$ and $V(Y) = 5$.
+- `ptrain()` uses the closed form cdf, and `qtrain()` uses an exact trig solution of the cubic, so there is no root finding.
+- `rtrain()` uses the w-F theorem with the exact quantile.
+- Every function returns a `"train"` object with the values, the true summaries and a ggplot with the relevant area shaded.
+- Bad input gives a clear error message.

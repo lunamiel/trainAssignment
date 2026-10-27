@@ -1,0 +1,24 @@
+Package: MATH4753LuciaF26
+Title: Train Lateness Distribution Functions for MATH 4753
+Version: 0.1.0
+Authors@R: 
+    person("Lucia", "Nguyen", email = "lunamiel@users.noreply.github.com", role = c("aut", "cre"))
+Description: Density, distribution, quantile and random generation functions
+    for the train lateness distribution with density 3/500*(25 - y^2) on (-5, 5).
+    The functions validate their input, use an exact closed form quantile,
+    return summaries such as the mean, variance and tail probabilities,
+    and draw ggplot2 plots with shaded tail areas and marked quantiles.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    ggplot2 (>= 3.4.0),
+    stats,
+    utils
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.0
